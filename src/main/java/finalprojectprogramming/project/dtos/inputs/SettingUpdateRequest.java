@@ -1,0 +1,18 @@
+package finalprojectprogramming.project.dtos.inputs;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class SettingUpdateRequest {
+
+    private String value;
+    private String description;
+}
