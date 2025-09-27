@@ -27,7 +27,7 @@ import lombok.Setter;
 @Builder
 @Entity
 @Table(name = "notifications")
-public class NotificationModel {
+public class Notification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

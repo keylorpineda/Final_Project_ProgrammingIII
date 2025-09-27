@@ -23,7 +23,7 @@ import lombok.Setter;
 @Builder
 @Entity
 @Table(name = "space_images")
-public class SpaceImageModel {
+public class SpaceImage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

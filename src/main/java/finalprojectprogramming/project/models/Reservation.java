@@ -34,7 +34,7 @@ import org.hibernate.type.SqlTypes;
 @Builder
 @Entity
 @Table(name = "reservations")
-public class ReservationModel {
+public class Reservation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

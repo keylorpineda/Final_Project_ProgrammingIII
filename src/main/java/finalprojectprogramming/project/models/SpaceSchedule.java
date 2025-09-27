@@ -27,7 +27,7 @@ import lombok.Setter;
 @Builder
 @Entity
 @Table(name = "space_schedules")
-public class SpaceScheduleModel{
+public class SpaceSchedule{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

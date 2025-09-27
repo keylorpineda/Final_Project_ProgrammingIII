@@ -1,6 +1,5 @@
 package finalprojectprogramming.project.models;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -8,7 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -16,8 +15,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Getter
 @Setter
@@ -25,27 +22,23 @@ import org.hibernate.type.SqlTypes;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "audit_logs")
-public class AuditLogModel {
+@Table(name = "ratings")
+public class Rating {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reservation_id", nullable = false, unique = true)
+    private Reservation reservation;
 
-    @Column(nullable = false, length = 100)
-    private String action;
+    @Column(nullable = false)
+    private Integer score;
 
-    @Column(name = "entity_id", length = 255)
-    private String entityId;
+    @Column(columnDefinition = "text")
+    private String comment;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "details")
-    private JsonNode details;
-
-    @Column(name = "timestamp")
-    private LocalDateTime timestamp;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 }
