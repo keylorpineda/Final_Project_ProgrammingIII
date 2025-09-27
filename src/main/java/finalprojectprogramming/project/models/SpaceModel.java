@@ -1,6 +1,7 @@
 package finalprojectprogramming.project.models;
 
-import finalprojectprogramming.project.models.enums.UserRole;
+import finalprojectprogramming.project.models.enums.SpaceType;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,35 +26,43 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "users")
-public class UserModel {
+@Table(name = "spaces")
+public class SpaceModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "azure_id", nullable = false, unique = true, length = 255)
-    private String azureId;
+    @Column(nullable = false, length = 100)
+    private String name;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private UserRole role;
+    private SpaceType type;
 
-    @Column(length = 100)
-    private String name;
+    @Column(nullable = false)
+    private Integer capacity;
 
-    @Column(length = 255, unique = true)
-    private String email;
+    @Column(columnDefinition = "text")
+    private String description;
+
+    @Column(length = 255)
+    private String location;
 
     @Builder.Default
     @Column(nullable = false)
     private Boolean active = true;
 
-    @Column(name = "last_login_at")
-    private LocalDateTime lastLoginAt;
+    @Column(name = "max_reservation_duration")
+    private Integer maxReservationDuration;
 
-    @Column(name = "password_hash", length = 255)
-    private String passwordHash;
+    @Builder.Default
+    @Column(name = "requires_approval", nullable = false)
+    private Boolean requiresApproval = false;
+
+    @Builder.Default
+    @Column(name = "average_rating")
+    private Float averageRating = 0f;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -65,14 +74,14 @@ public class UserModel {
     private LocalDateTime deletedAt;
 
     @Builder.Default
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "space", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SpaceImage> images = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "space", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SpaceSchedule> schedules = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "space")
     private List<Reservation> reservations = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "approvedBy")
-    private List<Reservation> approvedReservations = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "user")
-    private List<AuditLog> auditLogs = new ArrayList<>();
 }
