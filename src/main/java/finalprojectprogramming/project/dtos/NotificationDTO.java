@@ -3,6 +3,7 @@ package finalprojectprogramming.project.dtos;
 import finalprojectprogramming.project.models.enums.NotificationStatus;
 import finalprojectprogramming.project.models.enums.NotificationType;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
@@ -29,6 +30,7 @@ public class NotificationDTO {
     @NotNull
     private NotificationType type;
 
+    @NotBlank
     @Email
     @Size(max = 255)
     private String sentTo;
