@@ -1,5 +1,8 @@
-package finalprojectprogramming.project.dtos.outputs;
+package finalprojectprogramming.project.dtos;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,11 +15,20 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SettingResponse {
+public class SettingDTO {
 
     private Long id;
-    private String key;
+
+    @NotBlank
+    @Size(max = 100)
+    private String key; // unique
+
+    @NotBlank
+    @Size(max = 255)
     private String value;
+
     private String description;
+
+    @PastOrPresent
     private LocalDateTime updatedAt;
 }

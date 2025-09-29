@@ -1,7 +1,12 @@
-package finalprojectprogramming.project.dtos.outputs;
+package finalprojectprogramming.project.dtos;
 
 import finalprojectprogramming.project.models.enums.NotificationStatus;
 import finalprojectprogramming.project.models.enums.NotificationType;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,11 +19,25 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class NotificationResponse {
+public class NotificationDTO {
 
     private Long id;
+
+    @Positive
+    private Long reservationId;
+
+    @NotNull
     private NotificationType type;
+
+    @Email
+    @Size(max = 255)
     private String sentTo;
+
+    private String messageContent;
+
+    @PastOrPresent
     private LocalDateTime sentAt;
+
+    @NotNull
     private NotificationStatus status;
 }

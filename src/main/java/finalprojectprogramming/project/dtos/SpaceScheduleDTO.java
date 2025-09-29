@@ -1,6 +1,8 @@
-package finalprojectprogramming.project.dtos.outputs;
+package finalprojectprogramming.project.dtos;
 
-
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Positive;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -15,14 +17,31 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SpaceScheduleResponse {
+public class SpaceScheduleDTO {
 
     private Long id;
+
+    @NotNull
+    @Positive
+    private Long spaceId;
+
+    @NotNull
     private DayOfWeek dayOfWeek;
+
+    @NotNull
     private LocalTime openTime;
-    private LocalTime closeTime;
+
+    @NotNull
+    private LocalTime closeTime; // Ensure openTime is before closeTime at the service layer.
+
+    @NotNull
     private Boolean holidayOverride;
+
     private String maintenanceNotes;
+
+    @PastOrPresent
     private LocalDateTime createdAt;
+
+    @PastOrPresent
     private LocalDateTime updatedAt;
 }
