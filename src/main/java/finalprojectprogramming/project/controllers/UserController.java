@@ -1,4 +1,4 @@
-package finalprojectprogramming.project.controllers.user;
+package finalprojectprogramming.project.controllers;
 
 import finalprojectprogramming.project.dtos.UserInputDTO;
 import finalprojectprogramming.project.dtos.UserOutputDTO;
