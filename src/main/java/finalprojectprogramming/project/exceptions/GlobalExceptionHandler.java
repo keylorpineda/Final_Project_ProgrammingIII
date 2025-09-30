@@ -1,5 +1,10 @@
 package finalprojectprogramming.project.exceptions;
 
+
+import finalprojectprogramming.project.exceptions.api.ApiError;
+import finalprojectprogramming.project.exceptions.api.ApiValidationError;
+import finalprojectprogramming.project.exceptions.openWeather.RateLimitExceededException;
+import finalprojectprogramming.project.exceptions.openWeather.WeatherProviderException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -26,18 +31,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiError> handleResourceNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request, null);
+         return buildResponse(HttpStatus.NOT_FOUND, HttpStatus.NOT_FOUND.name(), ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ApiError> handleBusinessRuleException(BusinessRuleException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request, null);
+        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.UNPROCESSABLE_ENTITY.name(), ex.getMessage(),
+                request, null);
     }
 
     @ExceptionHandler(InvalidPasswordException.class)
     public ResponseEntity<ApiError> handleInvalidPasswordException(InvalidPasswordException ex,
             HttpServletRequest request) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request, null);
+        return buildResponse(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.name(), ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -51,12 +57,14 @@ public class GlobalExceptionHandler {
                 .map(error -> new ApiValidationError(error.getObjectName(), resolveMessage(error.getDefaultMessage())))
                 .collect(Collectors.toList()));
 
-        return buildResponse(HttpStatus.BAD_REQUEST, "Validation failed", request, validationErrors);
+        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Validation failed", request,
+                validationErrors);
     }
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ApiError> handleCustomValidation(ValidationException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request, ex.getValidationErrors());
+        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage(), request,
+                ex.getValidationErrors());
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -67,7 +75,8 @@ public class GlobalExceptionHandler {
                         resolveMessage(violation.getMessage())))
                 .collect(Collectors.toList());
 
-        return buildResponse(HttpStatus.BAD_REQUEST, "Validation failed", request, validationErrors);
+        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Validation failed", request,
+                validationErrors);
     }
 
     @ExceptionHandler({ MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class,
@@ -84,26 +93,54 @@ public class GlobalExceptionHandler {
         } else {
             message = resolveMessage(ex.getMessage());
         }
-        return buildResponse(HttpStatus.BAD_REQUEST, message, request, null);
+        return buildResponse(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.name(), message, request, null);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrityViolation(DataIntegrityViolationException ex,
             HttpServletRequest request) {
         LOGGER.error("Data integrity violation", ex);
-        return buildResponse(HttpStatus.CONFLICT, "Data integrity violation", request, null);
+        return buildResponse(HttpStatus.CONFLICT, HttpStatus.CONFLICT.name(), "Data integrity violation", request,
+                null);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.name(), resolveMessage(ex.getMessage()),
+                request, null);
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiError> handleRateLimit(RateLimitExceededException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.TOO_MANY_REQUESTS, "RATE_LIMIT_EXCEEDED", resolveMessage(ex.getMessage()),
+                request, null);
+    }
+
+    @ExceptionHandler(WeatherProviderException.class)
+    public ResponseEntity<ApiError> handleWeatherProvider(WeatherProviderException ex, HttpServletRequest request) {
+        return buildResponse(ex.getStatus(), ex.getCode(), resolveMessage(ex.getMessage()), request, null);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGenericException(Exception ex, HttpServletRequest request) {
         LOGGER.error("Unhandled exception", ex);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", request, null);
+         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR.name(),
+                "An unexpected error occurred", request, null);
     }
 
-    private ResponseEntity<ApiError> buildResponse(HttpStatus status, String message, HttpServletRequest request,
-            List<ApiValidationError> validationErrors) {
-        ApiError error = new ApiError(status, message, request.getRequestURI(), validationErrors);
+    private ResponseEntity<ApiError> buildResponse(HttpStatus status, String code, String message,
+            HttpServletRequest request, List<ApiValidationError> validationErrors) {
+        String requestId = resolveRequestId(request);
+        ApiError error = new ApiError(status, code, message, request.getRequestURI(), requestId, validationErrors);
         return ResponseEntity.status(status).body(error);
+    }
+    
+private String resolveRequestId(HttpServletRequest request) {
+        String requestId = request.getHeader("X-Request-Id");
+        if (requestId == null || requestId.isBlank()) {
+            requestId = request.getHeader("X-Correlation-Id");
+        }
+        return requestId;
     }
 
     private String resolveMessage(String message) {

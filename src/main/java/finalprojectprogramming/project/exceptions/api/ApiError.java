@@ -17,14 +17,18 @@ public class ApiError {
     private final String message;
     private final String path;
     private final List<ApiValidationError> validationErrors;
+    private final String code;
+    private final String requestId;
 
-    public ApiError(HttpStatus httpStatus, String message, String path,
+    public ApiError(HttpStatus httpStatus, String code, String message, String path, String requestId,
             List<ApiValidationError> validationErrors) {
         this.timestamp = LocalDateTime.now();
         this.status = httpStatus.value();
         this.error = httpStatus.getReasonPhrase();
+        this.code = code;
         this.message = message;
         this.path = path;
+        this.requestId = requestId;
         this.validationErrors = validationErrors == null ? List.of() : List.copyOf(validationErrors);
     }
 
@@ -50,5 +54,13 @@ public class ApiError {
 
     public List<ApiValidationError> getValidationErrors() {
         return validationErrors;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getRequestId() {
+        return requestId;
     }
 }
