@@ -8,6 +8,7 @@ import finalprojectprogramming.project.exceptions.ResourceNotFoundException;
 import finalprojectprogramming.project.models.Reservation;
 import finalprojectprogramming.project.models.User;
 import finalprojectprogramming.project.repositories.UserRepository;
+import finalprojectprogramming.project.security.hash.PasswordHashService;
 import finalprojectprogramming.project.transformers.GenericMapperFactory;
 import finalprojectprogramming.project.transformers.InputOutputMapper;
 import java.time.LocalDateTime;
@@ -25,11 +26,14 @@ public class UserServiceImplementation implements UserService {
     private final UserRepository userRepository;
     private final InputOutputMapper<UserInputDTO, User, UserOutputDTO> userMapper;
     private final ModelMapper modelMapper;
+    private final PasswordHashService passwordHashService;
 
-    public UserServiceImplementation(UserRepository userRepository, GenericMapperFactory mapperFactory, ModelMapper modelMapper) {
+    public UserServiceImplementation(UserRepository userRepository, GenericMapperFactory mapperFactory,
+            ModelMapper modelMapper, PasswordHashService passwordHashService) {
         this.userRepository = userRepository;
         this.userMapper = mapperFactory.createInputOutputMapper(UserInputDTO.class, User.class, UserOutputDTO.class);
         this.modelMapper = modelMapper;
+        this.passwordHashService = passwordHashService;
     }
 
     @Override
@@ -37,6 +41,7 @@ public class UserServiceImplementation implements UserService {
         validateUniqueIdentifiers(inputDTO.getAzureId(), inputDTO.getEmail(), null);
 
         User user = userMapper.convertFromInput(inputDTO);
+        user.setPasswordHash(passwordHashService.encode(inputDTO.getPassword()));
         if (user.getReservations() == null) {
             user.setReservations(new java.util.ArrayList<>());
         }
@@ -64,8 +69,10 @@ public class UserServiceImplementation implements UserService {
         validateUniqueIdentifiers(inputDTO.getAzureId(), inputDTO.getEmail(), id);
 
         modelMapper.map(inputDTO, existing);
+        if (inputDTO.getPassword() != null && !inputDTO.getPassword().isBlank()) {
+            existing.setPasswordHash(passwordHashService.encode(inputDTO.getPassword()));
+        }
         existing.setUpdatedAt(LocalDateTime.now());
-
         User saved = userRepository.save(existing);
         return toOutput(saved);
     }
@@ -114,17 +121,20 @@ public class UserServiceImplementation implements UserService {
 
     private UserOutputDTO toOutput(User user) {
         UserOutputDTO outputDTO = userMapper.convertToOutput(user);
-        java.util.List<Reservation> reservations = user.getReservations() == null ? java.util.List.<Reservation>of() : user.getReservations();
+        java.util.List<Reservation> reservations = user.getReservations() == null ? java.util.List.<Reservation>of()
+                : user.getReservations();
         outputDTO.setReservationIds(reservations.stream()
                 .map(Reservation::getId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList()));
-        java.util.List<Reservation> approved = user.getApprovedReservations() == null ? java.util.List.<Reservation>of() : user.getApprovedReservations();
+        java.util.List<Reservation> approved = user.getApprovedReservations() == null ? java.util.List.<Reservation>of()
+                : user.getApprovedReservations();
         outputDTO.setApprovedReservationIds(approved.stream()
                 .map(Reservation::getId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList()));
-        java.util.List<AuditLog> auditLogs = user.getAuditLogs() == null ? java.util.List.<AuditLog>of() : user.getAuditLogs();
+        java.util.List<AuditLog> auditLogs = user.getAuditLogs() == null ? java.util.List.<AuditLog>of()
+                : user.getAuditLogs();
         outputDTO.setAuditLogIds(auditLogs.stream()
                 .map(log -> log.getId())
                 .filter(Objects::nonNull)

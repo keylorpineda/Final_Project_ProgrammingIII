@@ -36,6 +36,6 @@ public class UserInputDTO {
     private Boolean active;
 
     @NotBlank
-    @Size(max = 255)
-    private String passwordHash;
+    @Size(min = 8, max = 255)
+    private String password;
 }
