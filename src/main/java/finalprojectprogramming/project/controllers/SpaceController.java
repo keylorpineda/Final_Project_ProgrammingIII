@@ -12,6 +12,7 @@ import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -37,6 +38,7 @@ public class SpaceController {
 
     @PostMapping
     @Operation(summary = "Create a new space")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<SpaceDTO> createSpace(@Valid @RequestBody SpaceDTO spaceDTO) {
         SpaceDTO created = spaceService.create(spaceDTO);
         return ResponseEntity.created(URI.create("/api/spaces/" + created.getId())).body(created);
@@ -44,24 +46,28 @@ public class SpaceController {
 
     @GetMapping
     @Operation(summary = "Retrieve all spaces")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<List<SpaceDTO>> getAllSpaces() {
         return ResponseEntity.ok(spaceService.findAll());
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Retrieve a space by id")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<SpaceDTO> getSpaceById(@PathVariable Long id) {
         return ResponseEntity.ok(spaceService.findById(id));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update an existing space")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<SpaceDTO> updateSpace(@PathVariable Long id, @Valid @RequestBody SpaceDTO spaceDTO) {
         return ResponseEntity.ok(spaceService.update(id, spaceDTO));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Soft delete a space")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<Void> deleteSpace(@PathVariable Long id) {
         spaceService.delete(id);
         return ResponseEntity.noContent().build();
@@ -69,12 +75,14 @@ public class SpaceController {
 
     @PatchMapping("/{id}/status")
     @Operation(summary = "Change the active status of a space")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<SpaceDTO> changeStatus(@PathVariable Long id, @RequestParam boolean active) {
         return ResponseEntity.ok(spaceService.changeStatus(id, active));
     }
 
     @GetMapping("/available")
     @Operation(summary = "Find available spaces in a time range")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR','USER')")
     public ResponseEntity<List<SpaceDTO>> findAvailableSpaces(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,

@@ -4,8 +4,11 @@ import finalprojectprogramming.project.dtos.NotificationDTO;
 import finalprojectprogramming.project.exceptions.ResourceNotFoundException;
 import finalprojectprogramming.project.models.Notification;
 import finalprojectprogramming.project.models.Reservation;
+import finalprojectprogramming.project.models.enums.UserRole;
 import finalprojectprogramming.project.repositories.NotificationRepository;
 import finalprojectprogramming.project.repositories.ReservationRepository;
+import finalprojectprogramming.project.security.SecurityUtils;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -79,12 +82,16 @@ public class NotificationServiceImplementation implements NotificationService {
     public NotificationDTO findById(Long id) {
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification with id " + id + " not found"));
+        Reservation reservation = notification.getReservation();
+        Long ownerId = reservation != null && reservation.getUser() != null ? reservation.getUser().getId() : null;
+        SecurityUtils.requireSelfOrAny(ownerId, UserRole.SUPERVISOR, UserRole.ADMIN);
         return toDto(notification);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<NotificationDTO> findAll() {
+        SecurityUtils.requireAny(UserRole.SUPERVISOR, UserRole.ADMIN);
         return notificationRepository.findAll().stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
@@ -93,6 +100,9 @@ public class NotificationServiceImplementation implements NotificationService {
     @Override
     @Transactional(readOnly = true)
     public List<NotificationDTO> findByReservation(Long reservationId) {
+        Reservation reservation = getActiveReservation(reservationId);
+        Long ownerId = reservation.getUser() != null ? reservation.getUser().getId() : null;
+        SecurityUtils.requireSelfOrAny(ownerId, UserRole.SUPERVISOR, UserRole.ADMIN);
         return notificationRepository.findByReservationId(reservationId).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
@@ -100,6 +110,7 @@ public class NotificationServiceImplementation implements NotificationService {
 
     @Override
     public void delete(Long id) {
+        SecurityUtils.requireAny(UserRole.SUPERVISOR, UserRole.ADMIN);
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification with id " + id + " not found"));
         notificationRepository.delete(notification);

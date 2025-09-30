@@ -11,6 +11,8 @@ import finalprojectprogramming.project.models.enums.ReservationStatus;
 import finalprojectprogramming.project.repositories.ReservationRepository;
 import finalprojectprogramming.project.repositories.SpaceRepository;
 import finalprojectprogramming.project.repositories.UserRepository;
+import finalprojectprogramming.project.security.SecurityUtils;
+import finalprojectprogramming.project.models.enums.UserRole;
 import finalprojectprogramming.project.services.space.SpaceAvailabilityValidator;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -43,9 +45,11 @@ public class ReservationServiceImplementation implements ReservationService {
 
     @Override
     public ReservationDTO create(ReservationDTO reservationDTO) {
+        SecurityUtils.requireSelfOrAny(reservationDTO.getUserId(), UserRole.SUPERVISOR, UserRole.ADMIN);
         User user = getUser(reservationDTO.getUserId());
         Space space = getSpace(reservationDTO.getSpaceId());
-        availabilityValidator.assertAvailability(space, reservationDTO.getStartTime(), reservationDTO.getEndTime(), null);
+        availabilityValidator.assertAvailability(space, reservationDTO.getStartTime(), reservationDTO.getEndTime(),
+                null);
         validateQrCode(reservationDTO.getQrCode(), null);
 
         Reservation reservation = new Reservation();
@@ -76,6 +80,8 @@ public class ReservationServiceImplementation implements ReservationService {
     @Override
     public ReservationDTO update(Long id, ReservationDTO reservationDTO) {
         Reservation reservation = getActiveReservation(id);
+        SecurityUtils.requireSelfOrAny(reservation.getUser() != null ? reservation.getUser().getId() : null,
+                UserRole.SUPERVISOR, UserRole.ADMIN);
         Space targetSpace = reservation.getSpace();
 
         if (reservationDTO.getSpaceId() != null && !Objects.equals(reservationDTO.getSpaceId(), targetSpace.getId())) {
@@ -116,12 +122,15 @@ public class ReservationServiceImplementation implements ReservationService {
     @Transactional(readOnly = true)
     public ReservationDTO findById(Long id) {
         Reservation reservation = getActiveReservation(id);
+        SecurityUtils.requireSelfOrAny(reservation.getUser() != null ? reservation.getUser().getId() : null,
+                UserRole.SUPERVISOR, UserRole.ADMIN);
         return toDto(reservation);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ReservationDTO> findAll() {
+        SecurityUtils.requireAny(UserRole.SUPERVISOR, UserRole.ADMIN);
         return reservationRepository.findAll().stream()
                 .filter(reservation -> reservation.getDeletedAt() == null)
                 .map(this::toDto)
@@ -131,6 +140,7 @@ public class ReservationServiceImplementation implements ReservationService {
     @Override
     @Transactional(readOnly = true)
     public List<ReservationDTO> findByUser(Long userId) {
+        SecurityUtils.requireSelfOrAny(userId, UserRole.SUPERVISOR, UserRole.ADMIN);
         return reservationRepository.findAll().stream()
                 .filter(reservation -> reservation.getDeletedAt() == null)
                 .filter(reservation -> reservation.getUser() != null
@@ -142,6 +152,7 @@ public class ReservationServiceImplementation implements ReservationService {
     @Override
     @Transactional(readOnly = true)
     public List<ReservationDTO> findBySpace(Long spaceId) {
+        SecurityUtils.requireAny(UserRole.SUPERVISOR, UserRole.ADMIN);
         return reservationRepository.findAll().stream()
                 .filter(reservation -> reservation.getDeletedAt() == null)
                 .filter(reservation -> reservation.getSpace() != null
@@ -153,6 +164,8 @@ public class ReservationServiceImplementation implements ReservationService {
     @Override
     public ReservationDTO cancel(Long id, String cancellationReason) {
         Reservation reservation = getActiveReservation(id);
+        SecurityUtils.requireSelfOrAny(reservation.getUser() != null ? reservation.getUser().getId() : null,
+                UserRole.SUPERVISOR, UserRole.ADMIN);
         if (reservation.getStatus() == ReservationStatus.CANCELED) {
             return toDto(reservation);
         }
@@ -169,6 +182,7 @@ public class ReservationServiceImplementation implements ReservationService {
 
     @Override
     public ReservationDTO approve(Long id, Long approverUserId) {
+        SecurityUtils.requireAny(UserRole.SUPERVISOR, UserRole.ADMIN);
         Reservation reservation = getActiveReservation(id);
         if (reservation.getStatus() != ReservationStatus.PENDING) {
             throw new BusinessRuleException("Only pending reservations can be approved");
@@ -182,6 +196,7 @@ public class ReservationServiceImplementation implements ReservationService {
 
     @Override
     public ReservationDTO markCheckIn(Long id) {
+        SecurityUtils.requireAny(UserRole.SUPERVISOR, UserRole.ADMIN);
         Reservation reservation = getActiveReservation(id);
         if (reservation.getStatus() != ReservationStatus.CONFIRMED) {
             throw new BusinessRuleException("Only confirmed reservations can be checked in");
@@ -196,6 +211,7 @@ public class ReservationServiceImplementation implements ReservationService {
     @Override
     public ReservationDTO markNoShow(Long id) {
         Reservation reservation = getActiveReservation(id);
+        SecurityUtils.requireAny(UserRole.SUPERVISOR, UserRole.ADMIN);
         if (reservation.getStatus() != ReservationStatus.CONFIRMED) {
             throw new BusinessRuleException("Only confirmed reservations can be marked as no-show");
         }
@@ -214,6 +230,7 @@ public class ReservationServiceImplementation implements ReservationService {
     @Override
     public void delete(Long id) {
         Reservation reservation = getActiveReservation(id);
+        SecurityUtils.requireAny(UserRole.SUPERVISOR, UserRole.ADMIN);
         reservation.setDeletedAt(LocalDateTime.now());
         reservation.setUpdatedAt(LocalDateTime.now());
         reservationRepository.save(reservation);

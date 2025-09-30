@@ -7,7 +7,9 @@ import finalprojectprogramming.project.exceptions.BusinessRuleException;
 import finalprojectprogramming.project.exceptions.ResourceNotFoundException;
 import finalprojectprogramming.project.models.Reservation;
 import finalprojectprogramming.project.models.User;
+import finalprojectprogramming.project.models.enums.UserRole;
 import finalprojectprogramming.project.repositories.UserRepository;
+import finalprojectprogramming.project.security.SecurityUtils;
 import finalprojectprogramming.project.security.hash.PasswordHashService;
 import finalprojectprogramming.project.transformers.GenericMapperFactory;
 import finalprojectprogramming.project.transformers.InputOutputMapper;
@@ -38,6 +40,7 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public UserOutputDTO create(UserInputDTO inputDTO) {
+        SecurityUtils.requireAny(UserRole.ADMIN);
         validateUniqueIdentifiers(inputDTO.getAzureId(), inputDTO.getEmail(), null);
 
         User user = userMapper.convertFromInput(inputDTO);
@@ -63,6 +66,7 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public UserOutputDTO update(Long id, UserInputDTO inputDTO) {
+        SecurityUtils.requireAny(UserRole.ADMIN);
         User existing = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found"));
 
@@ -80,6 +84,7 @@ public class UserServiceImplementation implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserOutputDTO findById(Long id) {
+        SecurityUtils.requireAny(UserRole.ADMIN, UserRole.SUPERVISOR);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found"));
         return toOutput(user);
@@ -88,6 +93,7 @@ public class UserServiceImplementation implements UserService {
     @Override
     @Transactional(readOnly = true)
     public List<UserOutputDTO> findAll() {
+        SecurityUtils.requireAny(UserRole.ADMIN, UserRole.SUPERVISOR);
         return userRepository.findAll().stream()
                 .map(this::toOutput)
                 .collect(Collectors.toList());
@@ -95,6 +101,7 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public void delete(Long id) {
+        SecurityUtils.requireAny(UserRole.ADMIN);
         User existing = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found"));
         existing.setActive(false);

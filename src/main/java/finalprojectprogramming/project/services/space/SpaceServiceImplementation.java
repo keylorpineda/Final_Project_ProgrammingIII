@@ -8,6 +8,8 @@ import finalprojectprogramming.project.models.SpaceImage;
 import finalprojectprogramming.project.models.SpaceSchedule;
 import finalprojectprogramming.project.models.enums.SpaceType;
 import finalprojectprogramming.project.repositories.SpaceRepository;
+import finalprojectprogramming.project.models.enums.UserRole;
+import finalprojectprogramming.project.security.SecurityUtils;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +36,7 @@ public class SpaceServiceImplementation implements SpaceService {
 
     @Override
     public SpaceDTO create(SpaceDTO spaceDTO) {
+        SecurityUtils.requireAny(UserRole.ADMIN, UserRole.SUPERVISOR);
         Space space = modelMapper.map(spaceDTO, Space.class);
         LocalDateTime now = LocalDateTime.now();
         space.setId(null);
@@ -61,6 +64,7 @@ public class SpaceServiceImplementation implements SpaceService {
 
     @Override
     public SpaceDTO update(Long id, SpaceDTO spaceDTO) {
+        SecurityUtils.requireAny(UserRole.ADMIN, UserRole.SUPERVISOR);
         Space space = getActiveSpaceOrThrow(id);
 
         if (spaceDTO.getName() != null) {
@@ -98,6 +102,7 @@ public class SpaceServiceImplementation implements SpaceService {
     @Override
     @Transactional(readOnly = true)
     public SpaceDTO findById(Long id) {
+        SecurityUtils.requireAny(UserRole.USER, UserRole.SUPERVISOR, UserRole.ADMIN);
         Space space = getActiveSpaceOrThrow(id);
         return toDto(space);
     }
@@ -105,6 +110,7 @@ public class SpaceServiceImplementation implements SpaceService {
     @Override
     @Transactional(readOnly = true)
     public List<SpaceDTO> findAll() {
+        SecurityUtils.requireAny(UserRole.USER, UserRole.SUPERVISOR, UserRole.ADMIN);
         return spaceRepository.findAll().stream()
                 .filter(space -> space.getDeletedAt() == null)
                 .map(this::toDto)
@@ -113,6 +119,7 @@ public class SpaceServiceImplementation implements SpaceService {
 
     @Override
     public void delete(Long id) {
+        SecurityUtils.requireAny(UserRole.ADMIN, UserRole.SUPERVISOR);
         Space space = getActiveSpaceOrThrow(id);
         applyStatusChange(space, false);
         space.setDeletedAt(LocalDateTime.now());
@@ -122,6 +129,7 @@ public class SpaceServiceImplementation implements SpaceService {
 
     @Override
     public SpaceDTO changeStatus(Long id, boolean active) {
+        SecurityUtils.requireAny(UserRole.ADMIN, UserRole.SUPERVISOR);
         Space space = spaceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Space with id " + id + " not found"));
         applyStatusChange(space, active);
@@ -134,6 +142,7 @@ public class SpaceServiceImplementation implements SpaceService {
     @Transactional(readOnly = true)
     public List<SpaceDTO> findAvailableSpaces(LocalDateTime startTime, LocalDateTime endTime,
             SpaceType type, Integer minimumCapacity) {
+        SecurityUtils.requireAny(UserRole.USER, UserRole.SUPERVISOR, UserRole.ADMIN);
         availabilityValidator.validateTimeRange(startTime, endTime);
         return spaceRepository.findAll().stream()
                 .filter(space -> space.getDeletedAt() == null)
@@ -165,18 +174,21 @@ public class SpaceServiceImplementation implements SpaceService {
 
     private SpaceDTO toDto(Space space) {
         SpaceDTO dto = modelMapper.map(space, SpaceDTO.class);
-        dto.setImageIds(space.getImages() == null ? new ArrayList<>() : space.getImages().stream()
-                .map(SpaceImage::getId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList()));
-        dto.setScheduleIds(space.getSchedules() == null ? new ArrayList<>() : space.getSchedules().stream()
-                .map(SpaceSchedule::getId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList()));
-        dto.setReservationIds(space.getReservations() == null ? new ArrayList<>() : space.getReservations().stream()
-                .map(Reservation::getId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList()));
+        dto.setImageIds(space.getImages() == null ? new ArrayList<>()
+                : space.getImages().stream()
+                        .map(SpaceImage::getId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList()));
+        dto.setScheduleIds(space.getSchedules() == null ? new ArrayList<>()
+                : space.getSchedules().stream()
+                        .map(SpaceSchedule::getId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList()));
+        dto.setReservationIds(space.getReservations() == null ? new ArrayList<>()
+                : space.getReservations().stream()
+                        .map(Reservation::getId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList()));
         if (dto.getActive() == null) {
             dto.setActive(Boolean.TRUE.equals(space.getActive()));
         }
