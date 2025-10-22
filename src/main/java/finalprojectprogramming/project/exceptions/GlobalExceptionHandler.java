@@ -1,13 +1,16 @@
 package finalprojectprogramming.project.exceptions;
 
-
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import finalprojectprogramming.project.exceptions.api.ApiError;
 import finalprojectprogramming.project.exceptions.api.ApiValidationError;
 import finalprojectprogramming.project.exceptions.openWeather.RateLimitExceededException;
 import finalprojectprogramming.project.exceptions.openWeather.WeatherProviderException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +34,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiError> handleResourceNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
-         return buildResponse(HttpStatus.NOT_FOUND, HttpStatus.NOT_FOUND.name(), ex.getMessage(), request, null);
+        return buildResponse(HttpStatus.NOT_FOUND, HttpStatus.NOT_FOUND.name(), ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(BusinessRuleException.class)
@@ -98,8 +101,8 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException.class })
     public ResponseEntity<ApiError> handleBadRequest(Exception ex, HttpServletRequest request) {
         String message;
-        if (ex instanceof HttpMessageNotReadableException) {
-            message = "Malformed request payload";
+        if (ex instanceof HttpMessageNotReadableException readableException) {
+            message = resolveHttpMessageNotReadableMessage(readableException);
         } else if (ex instanceof MissingServletRequestParameterException missing) {
             message = String.format("Missing required parameter '%s'", missing.getParameterName());
         } else if (ex instanceof MethodArgumentTypeMismatchException mismatch) {
@@ -140,7 +143,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGenericException(Exception ex, HttpServletRequest request) {
         LOGGER.error("Unhandled exception", ex);
-         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR.name(),
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR.name(),
                 "An unexpected error occurred", request, null);
     }
 
@@ -150,8 +153,65 @@ public class GlobalExceptionHandler {
         ApiError error = new ApiError(status, code, message, request.getRequestURI(), requestId, validationErrors);
         return ResponseEntity.status(status).body(error);
     }
-    
-private String resolveRequestId(HttpServletRequest request) {
+
+    private String resolveHttpMessageNotReadableMessage(HttpMessageNotReadableException exception) {
+        Throwable cause = exception.getCause();
+        if (cause instanceof InvalidFormatException invalidFormat) {
+            return resolveInvalidFormatMessage(invalidFormat);
+        }
+        if (cause instanceof JsonMappingException mappingException) {
+            String path = buildJsonPath(mappingException.getPath());
+            if (path != null) {
+                return "Malformed request payload near '" + path + "'";
+            }
+            return "Malformed request payload";
+        }
+        return "Malformed request payload";
+    }
+
+    private String resolveInvalidFormatMessage(InvalidFormatException exception) {
+        String path = buildJsonPath(exception.getPath());
+        Object value = exception.getValue();
+        StringBuilder message = new StringBuilder();
+        String fieldLabel = path == null ? "request payload"
+                : "field '" + path + "'";
+        if (value == null) {
+            message.append("Invalid value for ").append(fieldLabel);
+        } else {
+            message.append("Invalid value '").append(value).append("' for ").append(fieldLabel);
+        }
+
+        Class<?> targetType = exception.getTargetType();
+        if (targetType != null && targetType.isEnum()) {
+            String allowedValues = Arrays.stream(targetType.getEnumConstants())
+                    .map(Object::toString)
+                    .collect(Collectors.joining(", "));
+            message.append(". Allowed values: ").append(allowedValues);
+        }
+        return message.toString();
+    }
+
+    private String buildJsonPath(List<JsonMappingException.Reference> path) {
+        String joinedPath = path.stream()
+                .map(reference -> {
+                    if (reference.getFieldName() != null) {
+                        return reference.getFieldName();
+                    }
+                    if (reference.getIndex() != -1) {
+                        return "[" + reference.getIndex() + "]";
+                    }
+                    return "?";
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining("."));
+
+        if (joinedPath.isBlank()) {
+            return null;
+        }
+        return joinedPath.replace(".[", "[");
+    }
+
+    private String resolveRequestId(HttpServletRequest request) {
         String requestId = request.getHeader("X-Request-Id");
         if (requestId == null || requestId.isBlank()) {
             requestId = request.getHeader("X-Correlation-Id");
