@@ -21,8 +21,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import finalprojectprogramming.project.exceptions.api.ApiError;
-import finalprojectprogramming.project.exceptions.api.ApiValidationError;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -61,6 +61,21 @@ public class GlobalExceptionHandler {
                 validationErrors);
     }
 
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiError> handleAuthentication(AuthenticationException ex, HttpServletRequest request) {
+        String message;
+        if (ex instanceof BadCredentialsException) {
+            message = "Invalid credentials";
+        } else {
+            message = resolveMessage(ex.getMessage());
+            if (message == null || message.isBlank()) {
+                message = "Authentication failed";
+            }
+        }
+
+        return buildResponse(HttpStatus.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.name(), message, request, null);
+    }
+
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ApiError> handleCustomValidation(ValidationException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage(), request,
@@ -88,7 +103,8 @@ public class GlobalExceptionHandler {
         } else if (ex instanceof MissingServletRequestParameterException missing) {
             message = String.format("Missing required parameter '%s'", missing.getParameterName());
         } else if (ex instanceof MethodArgumentTypeMismatchException mismatch) {
-            String requiredTypeName = (mismatch.getRequiredType() != null) ? mismatch.getRequiredType().getSimpleName() : "unknown";
+            Class<?> requiredType = mismatch.getRequiredType();
+            String requiredTypeName = (requiredType != null) ? requiredType.getSimpleName() : "unknown";
             message = String.format("Parameter '%s' should be of type %s", mismatch.getName(), requiredTypeName);
         } else {
             message = resolveMessage(ex.getMessage());
