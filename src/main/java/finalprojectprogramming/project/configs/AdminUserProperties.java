@@ -10,8 +10,6 @@ public class AdminUserProperties {
     private boolean enabled = true;
     private String email;
     private String name = "Administrator";
-    private String password;
-    private boolean forcePasswordReset = false;
 
     public boolean isEnabled() {
         return enabled;
@@ -35,21 +33,5 @@ public class AdminUserProperties {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public boolean isForcePasswordReset() {
-        return forcePasswordReset;
-    }
-
-    public void setForcePasswordReset(boolean forcePasswordReset) {
-        this.forcePasswordReset = forcePasswordReset;
     }
 }

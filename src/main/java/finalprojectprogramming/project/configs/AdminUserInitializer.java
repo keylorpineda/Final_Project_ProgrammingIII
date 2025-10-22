@@ -14,7 +14,6 @@ import org.springframework.util.StringUtils;
 import finalprojectprogramming.project.models.User;
 import finalprojectprogramming.project.models.enums.UserRole;
 import finalprojectprogramming.project.repositories.UserRepository;
-import finalprojectprogramming.project.security.hash.PasswordHashService;
 
 @Configuration
 public class AdminUserInitializer {
@@ -24,9 +23,7 @@ public class AdminUserInitializer {
     @Bean
     public ApplicationRunner adminProvisioningRunner(
             AdminUserProperties properties,
-            UserRepository userRepository,
-            PasswordHashService passwordHashService
-    ) {
+            UserRepository userRepository) {
         return args -> {
             if (!properties.isEnabled()) {
                 LOGGER.info("Admin auto-provisioning is disabled");
@@ -34,14 +31,13 @@ public class AdminUserInitializer {
             }
 
             String email = properties.getEmail();
-            String password = properties.getPassword();
 
-           if (!StringUtils.hasText(email) || !StringUtils.hasText(password)) {
-                LOGGER.warn("Admin provisioning skipped because mandatory properties (email/password) are missing");
+            if (!StringUtils.hasText(email)) {
+                LOGGER.warn("Admin provisioning skipped because admin email is missing");
                 return;
             }
 
-           Optional<User> existingUser = userRepository.findByEmail(email);
+            Optional<User> existingUser = userRepository.findByEmail(email);
 
             LocalDateTime now = LocalDateTime.now();
 
@@ -60,20 +56,14 @@ public class AdminUserInitializer {
                     updated = true;
                 }
 
-                if (StringUtils.hasText(properties.getName()) && !Objects.equals(user.getName(), properties.getName())) {
+                if (StringUtils.hasText(properties.getName())
+                        && !Objects.equals(user.getName(), properties.getName())) {
                     user.setName(properties.getName());
                     updated = true;
                 }
 
-                 if (!Objects.equals(user.getEmail(), email)) {
+                if (!Objects.equals(user.getEmail(), email)) {
                     user.setEmail(email);
-                }
-
-                boolean shouldResetPassword = properties.isForcePasswordReset()
-                        || !passwordHashService.matches(password, user.getPasswordHash());
-                if (shouldResetPassword) {
-                    user.setPasswordHash(passwordHashService.encode(password));
-                    updated = true;
                 }
 
                 if (updated) {
@@ -81,7 +71,7 @@ public class AdminUserInitializer {
                     userRepository.save(user);
                     LOGGER.info("Updated existing administrator account with email={} (id={})", email, user.getId());
                 } else {
-                     LOGGER.info("Administrator account with email={} already up-to-date", email);
+                    LOGGER.info("Administrator account with email={} already up-to-date", email);
                 }
                 return;
             }
@@ -91,13 +81,12 @@ public class AdminUserInitializer {
                     .name(StringUtils.hasText(properties.getName()) ? properties.getName() : "Administrator")
                     .role(UserRole.ADMIN)
                     .active(true)
-                    .passwordHash(passwordHashService.encode(password))
                     .createdAt(now)
                     .updatedAt(now)
                     .build();
 
             User saved = userRepository.save(admin);
-           LOGGER.info("Administrator account provisioned with email={} (id={})", email, saved.getId());
+            LOGGER.info("Administrator account provisioned with email={} (id={})", email, saved.getId());
         };
     }
 }

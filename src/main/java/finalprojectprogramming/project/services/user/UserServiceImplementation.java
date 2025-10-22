@@ -10,7 +10,6 @@ import finalprojectprogramming.project.models.User;
 import finalprojectprogramming.project.models.enums.UserRole;
 import finalprojectprogramming.project.repositories.UserRepository;
 import finalprojectprogramming.project.security.SecurityUtils;
-import finalprojectprogramming.project.security.hash.PasswordHashService;
 import finalprojectprogramming.project.transformers.GenericMapperFactory;
 import finalprojectprogramming.project.transformers.InputOutputMapper;
 import java.time.LocalDateTime;
@@ -28,14 +27,12 @@ public class UserServiceImplementation implements UserService {
     private final UserRepository userRepository;
     private final InputOutputMapper<UserInputDTO, User, UserOutputDTO> userMapper;
     private final ModelMapper modelMapper;
-    private final PasswordHashService passwordHashService;
 
     public UserServiceImplementation(UserRepository userRepository, GenericMapperFactory mapperFactory,
-            ModelMapper modelMapper, PasswordHashService passwordHashService) {
+            ModelMapper modelMapper) {
         this.userRepository = userRepository;
         this.userMapper = mapperFactory.createInputOutputMapper(UserInputDTO.class, User.class, UserOutputDTO.class);
         this.modelMapper = modelMapper;
-        this.passwordHashService = passwordHashService;
     }
 
     @Override
@@ -43,7 +40,6 @@ public class UserServiceImplementation implements UserService {
         SecurityUtils.requireAny(UserRole.ADMIN);
         validateUniqueEmail(inputDTO.getEmail(), null);
         User user = userMapper.convertFromInput(inputDTO);
-        user.setPasswordHash(passwordHashService.encode(inputDTO.getPassword()));
         if (user.getReservations() == null) {
             user.setReservations(new java.util.ArrayList<>());
         }
@@ -72,9 +68,6 @@ public class UserServiceImplementation implements UserService {
 
         validateUniqueEmail(inputDTO.getEmail(), id);
         modelMapper.map(inputDTO, existing);
-        if (inputDTO.getPassword() != null && !inputDTO.getPassword().isBlank()) {
-            existing.setPasswordHash(passwordHashService.encode(inputDTO.getPassword()));
-        }
         existing.setUpdatedAt(LocalDateTime.now());
         User saved = userRepository.save(existing);
         return toOutput(saved);
