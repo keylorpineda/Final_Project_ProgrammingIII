@@ -33,18 +33,15 @@ public class AdminUserInitializer {
                 return;
             }
 
-            String azureId = properties.getAzureId();
+            String email = properties.getEmail();
             String password = properties.getPassword();
 
-            if (!StringUtils.hasText(azureId) || !StringUtils.hasText(password)) {
-                LOGGER.warn("Admin provisioning skipped because mandatory properties (azureId/password) are missing");
+           if (!StringUtils.hasText(email) || !StringUtils.hasText(password)) {
+                LOGGER.warn("Admin provisioning skipped because mandatory properties (email/password) are missing");
                 return;
             }
 
-            Optional<User> existingUser = userRepository.findByAzureId(azureId);
-            if (existingUser.isEmpty() && StringUtils.hasText(properties.getEmail())) {
-                existingUser = userRepository.findByEmail(properties.getEmail());
-            }
+           Optional<User> existingUser = userRepository.findByEmail(email);
 
             LocalDateTime now = LocalDateTime.now();
 
@@ -68,9 +65,8 @@ public class AdminUserInitializer {
                     updated = true;
                 }
 
-                if (StringUtils.hasText(properties.getEmail()) && !Objects.equals(user.getEmail(), properties.getEmail())) {
-                    user.setEmail(properties.getEmail());
-                    updated = true;
+                 if (!Objects.equals(user.getEmail(), email)) {
+                    user.setEmail(email);
                 }
 
                 boolean shouldResetPassword = properties.isForcePasswordReset()
@@ -83,16 +79,15 @@ public class AdminUserInitializer {
                 if (updated) {
                     user.setUpdatedAt(now);
                     userRepository.save(user);
-                    LOGGER.info("Updated existing administrator account with azureId={} (id={})", azureId, user.getId());
+                    LOGGER.info("Updated existing administrator account with email={} (id={})", email, user.getId());
                 } else {
-                    LOGGER.info("Administrator account with azureId={} already up-to-date", azureId);
+                     LOGGER.info("Administrator account with email={} already up-to-date", email);
                 }
                 return;
             }
 
             User admin = User.builder()
-                    .azureId(azureId)
-                    .email(StringUtils.hasText(properties.getEmail()) ? properties.getEmail() : null)
+                    .email(email)
                     .name(StringUtils.hasText(properties.getName()) ? properties.getName() : "Administrator")
                     .role(UserRole.ADMIN)
                     .active(true)
@@ -102,7 +97,7 @@ public class AdminUserInitializer {
                     .build();
 
             User saved = userRepository.save(admin);
-            LOGGER.info("Administrator account provisioned with azureId={} (id={})", azureId, saved.getId());
+           LOGGER.info("Administrator account provisioned with email={} (id={})", email, saved.getId());
         };
     }
 }

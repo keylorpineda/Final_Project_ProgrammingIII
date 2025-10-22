@@ -18,7 +18,6 @@ import lombok.Setter;
 public class UserOutputDTO {
 
     private Long id;
-    private String azureId;
     private UserRole role;
     private String name;
     private String email;

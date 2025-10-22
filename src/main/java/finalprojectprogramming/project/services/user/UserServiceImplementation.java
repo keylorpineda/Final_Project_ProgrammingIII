@@ -41,8 +41,7 @@ public class UserServiceImplementation implements UserService {
     @Override
     public UserOutputDTO create(UserInputDTO inputDTO) {
         SecurityUtils.requireAny(UserRole.ADMIN);
-        validateUniqueIdentifiers(inputDTO.getAzureId(), inputDTO.getEmail(), null);
-
+        validateUniqueEmail(inputDTO.getEmail(), null);
         User user = userMapper.convertFromInput(inputDTO);
         user.setPasswordHash(passwordHashService.encode(inputDTO.getPassword()));
         if (user.getReservations() == null) {
@@ -70,8 +69,7 @@ public class UserServiceImplementation implements UserService {
         User existing = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found"));
 
-        validateUniqueIdentifiers(inputDTO.getAzureId(), inputDTO.getEmail(), id);
-
+        validateUniqueEmail(inputDTO.getEmail(), id);
         modelMapper.map(inputDTO, existing);
         if (inputDTO.getPassword() != null && !inputDTO.getPassword().isBlank()) {
             existing.setPasswordHash(passwordHashService.encode(inputDTO.getPassword()));
@@ -110,13 +108,7 @@ public class UserServiceImplementation implements UserService {
         userRepository.save(existing);
     }
 
-    private void validateUniqueIdentifiers(String azureId, String email, Long currentId) {
-        userRepository.findByAzureId(azureId)
-                .filter(user -> !Objects.equals(user.getId(), currentId))
-                .ifPresent(user -> {
-                    throw new BusinessRuleException("Azure ID is already registered for another user");
-                });
-
+     private void validateUniqueEmail(String email, Long currentId) {
         if (email != null && !email.isBlank()) {
             userRepository.findByEmail(email)
                     .filter(user -> !Objects.equals(user.getId(), currentId))

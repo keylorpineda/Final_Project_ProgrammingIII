@@ -18,16 +18,13 @@ import lombok.Setter;
 @Builder
 public class UserInputDTO {
 
-    @NotBlank
-    @Size(max = 255)
-    private String azureId;
-
     @NotNull
     private UserRole role;
 
     @Size(max = 100)
     private String name;
 
+    @NotBlank
     @Email
     @Size(max = 255)
     private String email;

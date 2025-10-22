@@ -34,10 +34,7 @@ public class AppUserDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-       if (user.getEmail() != null && !user.getEmail().isBlank()) {
-            return user.getEmail();
-        }
-        return user.getAzureId();
+        return user.getEmail();
     }
 
     @Override

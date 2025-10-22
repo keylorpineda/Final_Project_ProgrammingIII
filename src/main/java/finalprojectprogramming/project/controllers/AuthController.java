@@ -41,12 +41,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody AuthRequestDTO request) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        String username = authentication.getName();
-        String token = jwtService.generateToken(username);
+        String authenticatedEmail = authentication.getName();
+        String token = jwtService.generateToken(authenticatedEmail);
         Date expirationDate = jwtService.extractExpiration(token);
         Instant expiresAt = expirationDate != null ? expirationDate.toInstant() : null;
 

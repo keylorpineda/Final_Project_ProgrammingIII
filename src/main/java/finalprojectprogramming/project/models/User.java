@@ -32,9 +32,6 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "azure_id", nullable = false, unique = true, length = 255)
-    private String azureId;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private UserRole role;
@@ -42,7 +39,7 @@ public class User {
     @Column(length = 100)
     private String name;
 
-    @Column(length = 255, unique = true)
+    @Column(length = 255, unique = true, nullable = false)
     private String email;
 
     @Builder.Default

@@ -25,7 +25,6 @@ public class AppUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         Optional<User> userOptional = userRepository.findByEmail(username);
         User user = userOptional
-                .or(() -> userRepository.findByAzureId(username))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         return new AppUserDetails(user);
     }
