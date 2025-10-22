@@ -41,7 +41,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         final String prefix = "Bearer ";
 
         if (authHeader == null || !authHeader.startsWith(prefix)) {
-            filterChain.doFilter(request, response);
+            continueWithoutAuthentication(filterChain, request, response);
             return;
         }
 
@@ -51,28 +51,54 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             username = jwtService.extractUsername(jwt);
         } catch (Exception e) {
-            LOGGER.error("Failed to extract username from JWT", e);
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+           LOGGER.warn("Failed to extract username from JWT", e);
+            continueWithoutAuthentication(filterChain, request, response);
             return;
         }
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            if (jwtService.isTokenValid(jwt, userDetails.getUsername())) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            } else {
-                LOGGER.warn("Invalid JWT token");
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                return;
-            }
+        if (username == null) {
+            continueWithoutAuthentication(filterChain, request, response);
+            return;
         }
 
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        UserDetails userDetails;
+        try {
+            userDetails = userDetailsService.loadUserByUsername(username);
+        } catch (Exception ex) {
+            LOGGER.warn("Failed to load user details for JWT", ex);
+            continueWithoutAuthentication(filterChain, request, response);
+            return;
+        }
+
+        if (!jwtService.isTokenValid(jwt, userDetails.getUsername())) {
+            LOGGER.warn("Invalid JWT token");
+            continueWithoutAuthentication(filterChain, request, response);
+            return;
+        }
+
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
+        );
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+
+        filterChain.doFilter(request, response);
+    }
+
+    private void continueWithoutAuthentication(
+            FilterChain filterChain,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws IOException, ServletException {
+        SecurityContextHolder.clearContext();
+        
         filterChain.doFilter(request, response);
     }
 }
