@@ -47,7 +47,7 @@ public class ReservationDTO {
 
     @NotBlank
     @Size(max = 255)
-    private String qrCode; // unique
+    private String qrCode;
 
     @PastOrPresent
     private LocalDateTime canceledAt;

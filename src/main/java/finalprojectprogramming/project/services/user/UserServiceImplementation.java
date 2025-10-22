@@ -55,6 +55,7 @@ public class UserServiceImplementation implements UserService {
         }
         user.setId(null);
         LocalDateTime now = LocalDateTime.now();
+        user.setActive(true);
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
         user.setDeletedAt(null);

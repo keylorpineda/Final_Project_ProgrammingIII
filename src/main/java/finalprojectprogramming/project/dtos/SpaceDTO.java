@@ -42,14 +42,14 @@ public class SpaceDTO {
     @Size(max = 255)
     private String location;
 
-    @NotNull
-    private Boolean active;
+   @Builder.Default
+    private Boolean active = Boolean.TRUE;
 
     @Positive
     private Integer maxReservationDuration;
 
-    @NotNull
-    private Boolean requiresApproval;
+    @Builder.Default
+    private Boolean requiresApproval = Boolean.FALSE;
 
     @DecimalMin(value = "0.0")
     @DecimalMax(value = "5.0")
@@ -61,15 +61,12 @@ public class SpaceDTO {
     @PastOrPresent
     private LocalDateTime updatedAt;
 
-    @NotNull
     @Builder.Default
     private List<Long> imageIds = new ArrayList<>();
 
-    @NotNull
     @Builder.Default
     private List<Long> scheduleIds = new ArrayList<>();
 
-    @NotNull
     @Builder.Default
     private List<Long> reservationIds = new ArrayList<>();
 }

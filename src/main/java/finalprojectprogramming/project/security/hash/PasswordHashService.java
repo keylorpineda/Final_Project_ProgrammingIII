@@ -1,6 +1,5 @@
 package finalprojectprogramming.project.security.hash;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -9,21 +8,18 @@ public class PasswordHashService {
 
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicy passwordPolicy;
-    private final String pepper;
 
     public PasswordHashService(
             PasswordEncoder passwordEncoder,
-            PasswordPolicy passwordPolicy,
-            @Value("${security.password.pepper:}") String pepper
+            PasswordPolicy passwordPolicy
     ) {
         this.passwordEncoder = passwordEncoder;
         this.passwordPolicy = passwordPolicy;
-        this.pepper = pepper == null ? "" : pepper;
     }
 
     public String encode(String rawPassword) {
         passwordPolicy.validate(rawPassword);
-        String material = (rawPassword == null ? "" : rawPassword) + pepper;
+         String material = rawPassword == null ? "" : rawPassword;
         return passwordEncoder.encode(material);
     }
 
@@ -31,7 +27,7 @@ public class PasswordHashService {
         if (storedEncodedPassword == null || storedEncodedPassword.isBlank()) {
             return false;
         }
-        String material = (rawPassword == null ? "" : rawPassword) + pepper;
+         String material = rawPassword == null ? "" : rawPassword;
         return passwordEncoder.matches(material, storedEncodedPassword);
     }
 }
