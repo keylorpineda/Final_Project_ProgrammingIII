@@ -21,4 +21,8 @@ public class AuthResponseDTO {
     private Instant expiresAt;
     private Long userId;
     private String role;
+    private String email;
+    private String name;
+    private boolean profileComplete;
+    private boolean newUser;
 }

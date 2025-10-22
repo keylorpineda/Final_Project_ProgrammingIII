@@ -17,7 +17,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -31,6 +33,9 @@ import finalprojectprogramming.project.security.AppUserDetails;
 import finalprojectprogramming.project.security.jwt.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
+import finalprojectprogramming.project.services.auth.AzureAuthenticationService;
+import finalprojectprogramming.project.dtos.AzureLoginRequestDTO;
+
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 
@@ -44,14 +49,16 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final Validator validator;
+    private final AzureAuthenticationService azureAuthenticationService;
     private final ObjectMapper objectMapper;
 
     public AuthController(AuthenticationManager authenticationManager, JwtService jwtService, Validator validator,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper, AzureAuthenticationService azureAuthenticationService) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.validator = validator;
         this.objectMapper = objectMapper;
+        this.azureAuthenticationService = azureAuthenticationService;
     }
 
     @PostMapping(value = "/login", consumes = { MediaType.APPLICATION_JSON_VALUE,
@@ -60,6 +67,12 @@ public class AuthController {
         AuthRequestDTO request = resolveCredentials(httpRequest);
         validateRequest(request);
         return authenticate(request);
+    }
+
+    @PostMapping(value = "/azure-login", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<AuthResponseDTO> azureLogin(@Valid @RequestBody AzureLoginRequestDTO request) {
+        AuthResponseDTO response = azureAuthenticationService.authenticate(request.getAccessToken());
+        return ResponseEntity.ok(response);
     }
 
     private AuthRequestDTO resolveCredentials(HttpServletRequest httpRequest) {
@@ -146,6 +159,7 @@ public class AuthController {
         Instant expiresAt = expirationDate != null ? expirationDate.toInstant() : null;
 
         Long userId = null;
+         String name = null;
         String role = null;
         Object principal = authentication.getPrincipal();
         if (principal instanceof AppUserDetails details) {
@@ -153,10 +167,12 @@ public class AuthController {
             if (user != null) {
                 userId = user.getId();
                 role = user.getRole() != null ? user.getRole().name() : null;
+                name = user.getName();
             }
         } else if (principal instanceof User user) {
             userId = user.getId();
             role = user.getRole() != null ? user.getRole().name() : null;
+            name = user.getName();
         } else {
             LOGGER.debug("Authentication principal is not an instance of AppUserDetails or User: {}", principal);
         }
@@ -167,6 +183,10 @@ public class AuthController {
                 .expiresAt(expiresAt)
                 .userId(userId)
                 .role(role)
+                .email(authenticatedEmail)
+                .name(name)
+                .profileComplete(name != null && !name.isBlank())
+                .newUser(false)
                 .build();
 
         return ResponseEntity.ok(response);
