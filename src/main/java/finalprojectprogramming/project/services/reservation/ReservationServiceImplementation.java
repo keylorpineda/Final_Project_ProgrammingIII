@@ -13,6 +13,7 @@ import finalprojectprogramming.project.repositories.SpaceRepository;
 import finalprojectprogramming.project.repositories.UserRepository;
 import finalprojectprogramming.project.security.SecurityUtils;
 import finalprojectprogramming.project.models.enums.UserRole;
+import finalprojectprogramming.project.services.notification.ReservationNotificationService;
 import finalprojectprogramming.project.services.space.SpaceAvailabilityValidator;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,15 +33,19 @@ public class ReservationServiceImplementation implements ReservationService {
     private final SpaceRepository spaceRepository;
     private final ModelMapper modelMapper;
     private final SpaceAvailabilityValidator availabilityValidator;
+    private final ReservationNotificationService reservationNotificationService;
 
     public ReservationServiceImplementation(ReservationRepository reservationRepository,
             UserRepository userRepository, SpaceRepository spaceRepository,
-            ModelMapper modelMapper, SpaceAvailabilityValidator availabilityValidator) {
+            ModelMapper modelMapper, SpaceAvailabilityValidator availabilityValidator,
+            ReservationNotificationService reservationNotificationService) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.spaceRepository = spaceRepository;
         this.modelMapper = modelMapper;
         this.availabilityValidator = availabilityValidator;
+        this.reservationNotificationService = reservationNotificationService;
+
     }
 
     @Override
@@ -74,6 +79,7 @@ public class ReservationServiceImplementation implements ReservationService {
             reservation.setNotifications(new ArrayList<>());
         }
         Reservation saved = reservationRepository.save(reservation);
+        reservationNotificationService.notifyReservationCreated(saved);
         return toDto(saved);
     }
 
@@ -177,6 +183,7 @@ public class ReservationServiceImplementation implements ReservationService {
         reservation.setCanceledAt(LocalDateTime.now());
         reservation.setUpdatedAt(LocalDateTime.now());
         Reservation saved = reservationRepository.save(reservation);
+        reservationNotificationService.notifyReservationCanceled(saved);
         return toDto(saved);
     }
 
@@ -191,6 +198,7 @@ public class ReservationServiceImplementation implements ReservationService {
         reservation.setStatus(ReservationStatus.CONFIRMED);
         reservation.setUpdatedAt(LocalDateTime.now());
         Reservation saved = reservationRepository.save(reservation);
+        reservationNotificationService.notifyReservationApproved(saved);
         return toDto(saved);
     }
 
