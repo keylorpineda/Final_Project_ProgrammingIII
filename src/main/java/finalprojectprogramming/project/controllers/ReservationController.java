@@ -1,13 +1,22 @@
 package finalprojectprogramming.project.controllers;
 
+import finalprojectprogramming.project.dtos.ReservationCheckInRequest;
 import finalprojectprogramming.project.dtos.ReservationDTO;
+import finalprojectprogramming.project.models.enums.UserRole;
+import finalprojectprogramming.project.security.SecurityUtils;
+import finalprojectprogramming.project.services.excel.ExcelExportService;
+import finalprojectprogramming.project.services.reservation.ReservationExportService;
 import finalprojectprogramming.project.services.reservation.ReservationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.util.List;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,9 +36,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReservationController {
 
     private final ReservationService reservationService;
+    private final ReservationExportService reservationExportService;
+    private final ExcelExportService excelExportService;
 
-    public ReservationController(ReservationService reservationService) {
+    public ReservationController(ReservationService reservationService,
+            ReservationExportService reservationExportService,
+            ExcelExportService excelExportService) {
         this.reservationService = reservationService;
+        this.reservationExportService = reservationExportService;
+        this.excelExportService = excelExportService;
     }
 
     @PostMapping
@@ -76,6 +91,30 @@ public class ReservationController {
         return ResponseEntity.ok(reservationService.findBySpace(spaceId));
     }
 
+    @GetMapping(value = "/export", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    @Operation(summary = "Export all reservations to Excel")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
+    public ResponseEntity<byte[]> exportAllReservations() {
+        byte[] document = reservationExportService.exportAllReservations();
+        HttpHeaders headers = buildExcelHeaders("reporte_reservas.xlsx");
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(document);
+    }
+
+    @GetMapping(value = "/user/{userId}/export",
+            produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    @Operation(summary = "Export reservations for a user to Excel")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR','USER')")
+    public ResponseEntity<byte[]> exportReservationsForUser(@PathVariable Long userId) {
+        SecurityUtils.requireSelfOrAny(userId, UserRole.SUPERVISOR, UserRole.ADMIN);
+        byte[] document = reservationExportService.exportReservationsForUser(userId);
+        HttpHeaders headers = buildExcelHeaders("historial_reservas_usuario_" + userId + ".xlsx");
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(document);
+    }
+
     @PostMapping("/{id}/cancel")
     @Operation(summary = "Cancel a reservation")
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR','USER')")
@@ -96,8 +135,9 @@ public class ReservationController {
     @PostMapping("/{id}/check-in")
     @Operation(summary = "Register reservation check-in")
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
-    public ResponseEntity<ReservationDTO> markCheckIn(@PathVariable Long id) {
-        return ResponseEntity.ok(reservationService.markCheckIn(id));
+    public ResponseEntity<ReservationDTO> markCheckIn(@PathVariable Long id,
+            @Valid @RequestBody ReservationCheckInRequest request) {
+        return ResponseEntity.ok(reservationService.markCheckIn(id, request));
     }
 
     @PostMapping("/{id}/no-show")
@@ -115,9 +155,41 @@ public class ReservationController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/{id}/permanent")
+    @Operation(summary = "Permanently delete a reservation from database (only for CHECKED_IN or NO_SHOW)")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> permanentlyDeleteReservation(@PathVariable Long id) {
+        reservationService.hardDelete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/export/space-statistics")
+    @Operation(summary = "Export space statistics to Excel (Admin only)")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<byte[]> exportSpaceStatistics() {
+        try {
+            ByteArrayOutputStream outputStream = excelExportService.exportSpaceStatistics();
+            
+            HttpHeaders headers = buildExcelHeaders("estadisticas-espacios.xlsx");
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(outputStream.toByteArray());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     public record CancellationRequest(String reason) {
     }
 
     public record ApprovalRequest(@NotNull Long approverUserId) {
+    }
+
+    private HttpHeaders buildExcelHeaders(String filename) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+        return headers;
     }
 }

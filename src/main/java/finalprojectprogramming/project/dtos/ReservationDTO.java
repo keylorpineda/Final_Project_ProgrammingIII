@@ -2,7 +2,6 @@ package finalprojectprogramming.project.dtos;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import finalprojectprogramming.project.models.enums.ReservationStatus;
-import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
@@ -34,11 +33,12 @@ public class ReservationDTO {
     @Positive
     private Long spaceId;
 
-    @FutureOrPresent
+    // ⚠️ Removido @FutureOrPresent debido a problemas con timezones
+    // El cliente puede estar en una zona horaria diferente al servidor
+    // La validación de tiempo futuro se hace en el servicio, no en el DTO
     @NotNull
     private LocalDateTime startTime;
 
-    @FutureOrPresent
     @NotNull
     private LocalDateTime endTime;
 
@@ -80,4 +80,8 @@ public class ReservationDTO {
     @NotNull
     @Builder.Default
     private List<Long> notificationIds = new ArrayList<>();
+
+    @NotNull
+    @Builder.Default
+    private List<ReservationAttendeeDTO> attendeeRecords = new ArrayList<>();
 }

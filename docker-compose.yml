@@ -26,6 +26,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Establece RUN_TESTS=true para ejecutar las pruebas y fallar el build si alguna rompe.
+        # Puedes sobrescribir con `RUN_TESTS=true docker compose build app` o usando un .env
+        RUN_TESTS: "${RUN_TESTS:-false}"
     image: project-app
     restart: on-failure
     depends_on:
@@ -39,7 +43,7 @@ services:
       SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
       SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
-      SPRING_JPA_HIBERNATE_DDL_AUTO: "${SPRING_JPA_HIBERNATE_DDL_AUTO:-none}"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
       SPRING_JPA_SHOW_SQL: "${SPRING_JPA_SHOW_SQL:-false}"
     volumes:
       - ./logs:/app/logs

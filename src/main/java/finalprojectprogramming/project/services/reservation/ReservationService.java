@@ -1,5 +1,7 @@
 package finalprojectprogramming.project.services.reservation;
 
+
+import finalprojectprogramming.project.dtos.ReservationCheckInRequest;
 import finalprojectprogramming.project.dtos.ReservationDTO;
 import java.util.List;
 
@@ -21,9 +23,11 @@ public interface ReservationService {
 
     ReservationDTO approve(Long id, Long approverUserId);
 
-    ReservationDTO markCheckIn(Long id);
-
+   ReservationDTO markCheckIn(Long id, ReservationCheckInRequest request);
+   
     ReservationDTO markNoShow(Long id);
 
     void delete(Long id);
+    
+    void hardDelete(Long id);
 }

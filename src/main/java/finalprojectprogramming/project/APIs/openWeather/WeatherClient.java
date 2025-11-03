@@ -54,7 +54,7 @@ public class WeatherClient {
     }
 
     private URI buildUri(String path, double lat, double lon) {
-        return UriComponentsBuilder.fromHttpUrl(properties.getBaseUrl())
+        return UriComponentsBuilder.fromUriString(properties.getBaseUrl())
                 .path(path)
                 .queryParam("lat", lat)
                 .queryParam("lon", lon)

@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
+import org.springframework.lang.NonNull;
 
 public class WeatherStartupLogger implements ApplicationListener<ApplicationReadyEvent> {
 
@@ -16,8 +17,9 @@ public class WeatherStartupLogger implements ApplicationListener<ApplicationRead
     }
 
     @Override
-    public void onApplicationEvent(ApplicationReadyEvent event) {
-        LOGGER.info("Weather module listo. Ejemplo de consulta diaria: curl \"http://localhost:8080/api/weather/daily?lat=9.36&lon=-83.70\"");
+    public void onApplicationEvent(@NonNull ApplicationReadyEvent event) {
+        LOGGER.info(
+                "Weather module listo. Ejemplo de consulta diaria: curl \"http://localhost:8080/api/weather/daily?lat=9.36&lon=-83.70\"");
         LOGGER.debug("Zona horaria configurada para agregacion: {}", properties.getZoneId());
     }
 }

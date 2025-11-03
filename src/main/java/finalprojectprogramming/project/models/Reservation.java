@@ -100,4 +100,8 @@ public class Reservation {
     @Builder.Default
     @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Notification> notifications = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReservationAttendee> attendeeRecords = new ArrayList<>();
 }

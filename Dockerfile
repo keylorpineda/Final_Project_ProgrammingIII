@@ -2,10 +2,23 @@ FROM maven:3.9.8-eclipse-temurin-21 AS build
 WORKDIR /app
 
 COPY pom.xml .
-RUN mvn -B -DskipTests dependency:go-offline
+# Descarga dependencias sin compilar/ejecutar tests
+RUN mvn -B -Dmaven.test.skip=true dependency:go-offline
 
 COPY src ./src
-RUN mvn -B -DskipTests package
+
+# Permite decidir si se ejecutan tests durante el build (por defecto true para CI)
+ARG RUN_TESTS=true
+
+# Ejecuta pruebas si RUN_TESTS=true (fallará el build si algo rompe)
+RUN if [ "$RUN_TESTS" = "true" ]; then \
+            mvn -B test jacoco:report; \
+        else \
+            echo "RUN_TESTS=false: omitiendo ejecución de tests durante el build"; \
+        fi
+
+# Empaqueta sin volver a ejecutar tests (se omitirá también si RUN_TESTS=false)
+RUN mvn -B -Dmaven.test.skip=true package
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
